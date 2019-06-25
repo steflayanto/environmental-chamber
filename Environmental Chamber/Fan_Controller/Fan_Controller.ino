@@ -10,7 +10,11 @@
 //Big fan -> Motor 2
 //Pump -> Motor 3
 
+#include "Adafruit_Si7021.h"
+Adafruit_Si7021 sensor = Adafruit_Si7021();
 
+
+boolean constantPrint = false;
 boolean newInput = false;
 boolean autoLevel = false;
 String cmd = ""; // Input Command
@@ -19,14 +23,20 @@ float waterLevel = 0; // ~current percentage of sensor covered
 int targetLevel = 75;
 
 void setup() {
-  Serial.begin(115200);
+  Serial.begin(9600);
   while (!Serial);
   Serial.setTimeout(100);
+  if (!sensor.begin()) {
+    Serial.println("Did not find Si7021 sensor!");
+    while (true)
+      ;
+  }
   pinSetup();
   motorSetup();
+  Serial.println("Commands: fan1, fan2, pump, water, display (\"display 1\" -> constantly display)");
   Serial.println("Usage: \"<command> <value>\"");
-  setMotor(1, 50);
-  setMotor(2, 100);
+  setMotor(1, 0);
+  setMotor(2, 0);
 }
 
 void loop() {
@@ -48,7 +58,7 @@ void loop() {
     } else if (cmd.equalsIgnoreCase("water")) {
       autoLevel = true;
       Serial.print("Setting target water level to ");
-      val = constrain(val, 0, 100);
+      val = constrain(val, 0, 1024);
       Serial.println(val);
       targetLevel = val;
     } else if (cmd.equalsIgnoreCase("display")) {
@@ -56,6 +66,11 @@ void loop() {
       Serial.println(waterLevel);
       Serial.print("Target level: ");
       Serial.println(targetLevel);
+      if (val == 1) {
+        constantPrint = true;
+      } else {
+        constantPrint = false;
+      }
     } else {
       Serial.println("Command not recognized");
     }
@@ -64,7 +79,18 @@ void loop() {
   if (autoLevel) {
     balanceWater(targetLevel);
   }
-  waterLevel = map(constrain(analogRead(A0), 50, 250), 50, 250, 0, 100);
+  if (constantPrint) {
+    Serial.print("Water level: ");
+    Serial.print(waterLevel);
+    Serial.print("\tTarget level: ");
+    Serial.print(targetLevel);
+    Serial.print("\tHumidity:    ");
+    Serial.print(sensor.readHumidity(), 2);
+    Serial.print("\tTemperature: ");
+    Serial.println(sensor.readTemperature(), 2);
+    delay(500);
+  }
+  waterLevel = map(constrain(analogRead(A0), 0, 1024), 0, 1024, 0, 1024);
 }
 
 void pinSetup() {
@@ -113,11 +139,11 @@ void balanceWater(int targetLevel) {
     if (abs(waterLevel - target) > FAR) {
       //Serial.println(waterLevel);
       pumpSpeed = 100;
-    }else{
+    } else {
       //Serial.println(waterLevel);
       pumpSpeed = 75;
     }
-  }else{
+  } else {
     pumpSpeed = 0;
   }
   setMotor(3, pumpSpeed);
@@ -129,15 +155,15 @@ void setMotor(int motor, int speed) {
     target = PUMP_PWM;
     if (speed < 0) {
       digitalWrite(PUMP_DIR, LOW); //MOTOR 3
-    }else{
+    } else {
       digitalWrite(PUMP_DIR, HIGH); //MOTOR 3
     }
     speed = abs(speed);
-  }else if (motor == 2) {
+  } else if (motor == 2) {
     target = BIG_FAN_PWM;
   } else if (motor == 1) {
     target = SMALL_FAN_PWM;
-  }else{
+  } else {
     Serial.println("Motor Write Error");
   }
   analogWrite(target, map(speed, 0, 100, 0, 254));
