@@ -14,10 +14,9 @@
 #include "Adafruit_Si7021.h"
 Adafruit_Si7021 sensor = Adafruit_Si7021();
 Adafruit_BME280 bme; // I2C
-boolean csv = true;
 
-
-boolean constantPrint = true;
+boolean csv = false;
+boolean constantPrint = false;
 boolean newInput = false;
 boolean autoLevel = false;
 String cmd = ""; // Input Command
@@ -27,13 +26,12 @@ int targetLevel = 75;
 
 void setup() {
   Serial.begin(9600);
-  while (!Serial);
-  Serial.setTimeout(100);
-  if (!sensor.begin()) {
-    Serial.println("Did not find Si7021 sensor!");
-    while (true);
-  }
-
+  //while (!Serial);
+  //Serial.setTimeout(100);
+//  if (!sensor.begin()) {
+//    Serial.println("Did not find Si7021 sensor!");
+//    while (true);
+//  }
   if (!bme.begin()) {
     Serial.println("Could not find a valid BME280 sensor, check wiring!");
     while (true);
@@ -44,7 +42,7 @@ void setup() {
   Serial.println("Usage: \"<command> <value>\"");
   setMotor(1, 0);
   setMotor(2, 0);
-  Serial.print("Time,Water level,Target level,Si Humidity,BME Humidity,Si Temperature,BME Temperature");
+  Serial.println("Time,Water level,Target level,Si Humidity,BME Humidity,Si Temperature,BME Temperature");
 }
 
 void loop() {
