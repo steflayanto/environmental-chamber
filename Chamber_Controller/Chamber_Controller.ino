@@ -26,16 +26,16 @@ int targetLevel = 75;
 
 void setup() {
   Serial.begin(9600);
-  //while (!Serial);
-  //Serial.setTimeout(100);
-//  if (!sensor.begin()) {
-//    Serial.println("Did not find Si7021 sensor!");
-//    while (true);
-//  }
-  if (!bme.begin()) {
-    Serial.println("Could not find a valid BME280 sensor, check wiring!");
-    while (true);
-  }
+  while (!Serial);
+  Serial.setTimeout(100);
+  //  if (!sensor.begin()) {
+  //    Serial.println("Did not find Si7021 sensor!");
+  //    while (true);
+  //  }
+  //  if (!bme.begin()) {
+  //    Serial.println("Could not find a valid BME280 sensor, check wiring!");
+  //    while (true);
+  //  }
   pinSetup();
   motorSetup();
   Serial.println("Commands: fan1, fan2, pump, water, display (\"display 1\" -> constantly display)");
@@ -68,10 +68,8 @@ void loop() {
       Serial.println(val);
       targetLevel = val;
     } else if (cmd.equalsIgnoreCase("display")) {
-      Serial.print("Water level: ");
+      Serial.print("Float sensor reading: ");
       Serial.println(waterLevel);
-      Serial.print("Target level: ");
-      Serial.println(targetLevel);
       if (val == 1) {
         constantPrint = true;
       } else {
@@ -83,7 +81,7 @@ void loop() {
     newInput = false;
   }
   if (autoLevel) {
-    balanceWater(targetLevel);
+    balanceWater();
   }
   if (constantPrint) {
     if (csv) {
@@ -159,17 +157,10 @@ void getInput() {
   }
 }
 
-void balanceWater(int targetLevel) {
-  float target = (float) targetLevel;
-  int pumpSpeed ;
-  if (waterLevel < target) {
-    if (abs(waterLevel - target) > FAR) {
-      //Serial.println(waterLevel);
-      pumpSpeed = 100;
-    } else {
-      //Serial.println(waterLevel);
-      pumpSpeed = 75;
-    }
+void balanceWater() {
+  int pumpSpeed;
+  if (waterLevel == target) {
+    pumpSpeed = 100;
   } else {
     pumpSpeed = 0;
   }
