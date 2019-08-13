@@ -10,73 +10,88 @@
 //Big fan -> Motor 2
 //Pump -> Motor 3
 #include <Adafruit_Sensor.h>
-#include <Adafruit_BME280.h>
+#include "BlueDot_BME280.h"
 #include "Adafruit_Si7021.h"
 Adafruit_Si7021 sensor = Adafruit_Si7021();
-Adafruit_BME280 bme; // I2C
+BlueDot_BME280 bme1;                                     //Object for Sensor 1
+BlueDot_BME280 bme2;                                     //Object for Sensor 2
+int bme1Detected = 0;                                    //Checks if Sensor 1 is available
+int bme2Detected = 0;                                    //Checks if Sensor 2 is available
 
-boolean csv = false;
+//SETTINGS
+boolean csv = true;
 boolean constantPrint = false;
-boolean newInput = false;
-boolean autoLevel = false;
+boolean autoLevel = true;
+
+int waterLevel = 0; // reading of analog0
 String cmd = ""; // Input Command
 int val = 0; // Input Value
-float waterLevel = 0; // ~current percentage of sensor covered
-int targetLevel = 75;
+boolean newInput = false;
+int pumpSpeed = 0;
+int fan1Speed = 0;
+int fan2Speed = 0;
+unsigned long startTime = 0;
 
 void setup() {
   Serial.begin(9600);
   while (!Serial);
   Serial.setTimeout(100);
-  //  if (!sensor.begin()) {
-  //    Serial.println("Did not find Si7021 sensor!");
-  //    while (true);
-  //  }
-  //  if (!bme.begin()) {
-  //    Serial.println("Could not find a valid BME280 sensor, check wiring!");
-  //    while (true);
-  //  }
+  if (!sensor.begin()) {
+    Serial.println("Did not find Si7021 sensor!");
+    while (true);
+  }
+  setupBME();
   pinSetup();
   motorSetup();
   Serial.println("Commands: fan1, fan2, pump, water, display (\"display 1\" -> constantly display)");
   Serial.println("Usage: \"<command> <value>\"");
   setMotor(1, 0);
   setMotor(2, 0);
-  Serial.println("Time,Water level,Target level,Si Humidity,BME Humidity,Si Temperature,BME Temperature");
+  Serial.println("Time,Water,Pump,Fan1,Fan2,Si Humidity,BME1 Humidity,BME2 Humidity,Si Temperature,BME1 Temperature,BME2 Temperature");
 }
 
 void loop() {
   getInput();
+  waterLevel = map(constrain(analogRead(A0), 0, 1024), 0, 1024, 0, 1024);
   if (newInput) {
     if (cmd.equalsIgnoreCase("fan1")) {
-      Serial.print("Setting fan1 to ");
-      Serial.println(val);
-      setMotor(1, constrain(val, 0, 100));
+      if (!constantPrint) {
+        Serial.print("Setting fan1 to ");
+        Serial.println(val);
+      }
+      fan1Speed = constrain(val, 0, 100);
+      setMotor(1, fan1Speed);
     } else if (cmd.equalsIgnoreCase("fan2")) {
-      Serial.print("Setting fan2 to ");
-      Serial.println(val);
-      setMotor(2, constrain(val, 0, 100));
+      if (!constantPrint) {
+        Serial.print("Setting fan2 to ");
+        Serial.println(val);
+      }
+      fan2Speed = constrain(val, 0, 100);
+      setMotor(2, fan2Speed);
     } else if (cmd.equalsIgnoreCase("pump")) {
       autoLevel = false;
-      Serial.print("Setting pump to ");
-      Serial.println(val);
-      setMotor(3, constrain(val, -100, 100));
+      if (!constantPrint) {
+        Serial.print("Setting pump to ");
+        Serial.println(val);
+      }
+      pumpSpeed = constrain(val, -100, 100);
+      setMotor(3, pumpSpeed);
     } else if (cmd.equalsIgnoreCase("water")) {
       autoLevel = true;
-      Serial.print("Setting target water level to ");
-      val = constrain(val, 0, 1024);
-      Serial.println(val);
-      targetLevel = val;
+      if (!constantPrint) {
+        Serial.print("Autolevel on");
+      }
     } else if (cmd.equalsIgnoreCase("display")) {
-      Serial.print("Float sensor reading: ");
-      Serial.println(waterLevel);
       if (val == 1) {
         constantPrint = true;
+        startTime = millis();
       } else {
         constantPrint = false;
       }
     } else {
-      Serial.println("Command not recognized");
+      if (!constantPrint) {
+        Serial.println("Command not recognized");
+      }
     }
     newInput = false;
   }
@@ -85,37 +100,53 @@ void loop() {
   }
   if (constantPrint) {
     if (csv) {
-      Serial.print(millis());
+      Serial.print(millis() - startTime);
       Serial.print(",");
       Serial.print(waterLevel);
       Serial.print(",");
-      Serial.print(targetLevel);
+      Serial.print(pumpSpeed);
+      Serial.print(",");
+      Serial.print(fan1Speed);
+      Serial.print(",");
+      Serial.print(fan2Speed);
       Serial.print(",");
       Serial.print(sensor.readHumidity(), 2);
       Serial.print(",");
-      Serial.print(bme.readHumidity(), 2);
+      Serial.print(bme1.readHumidity(), 2);
+      Serial.print(",");
+      Serial.print(bme2.readHumidity(), 2);
       Serial.print(",");
       Serial.print(sensor.readTemperature(), 2);
       Serial.print(",");
-      Serial.println(bme.readTemperature(), 2);
+      Serial.print(bme1.readTempC(), 2);
+      Serial.print(",");
+      Serial.print(bme2.readTempC(), 2);
       delay(100);
     } else {
-      Serial.print("Water level: ");
+      Serial.print("Water:");
       Serial.print(waterLevel);
-      Serial.print("\tTarget level: ");
-      Serial.print(targetLevel);
-      Serial.print("\tSi Humidity:    ");
+      Serial.print("\tPump:");
+      Serial.print(pumpSpeed);
+      Serial.print("\tFan1:");
+      Serial.print(fan1Speed);
+      Serial.print("\tFan2:");
+      Serial.print(fan2Speed);
+      Serial.print("\tSi Hum:");
       Serial.print(sensor.readHumidity(), 2);
-      Serial.print("\tBME Humidity:    ");
-      Serial.print(bme.readHumidity(), 2);
-      Serial.print("\tSi Temperature: ");
+      Serial.print("\tBME1 Hum:");
+      Serial.print(bme1.readHumidity(), 2);
+      Serial.print("\tBME2 Hum:");
+      Serial.print(bme2.readHumidity(), 2);
+      Serial.print("\tSi Temp:");
       Serial.print(sensor.readTemperature(), 2);
-      Serial.print("\tBME Temperature: ");
-      Serial.println(bme.readTemperature(), 2);
+      Serial.print("\tBME1 Temp:");
+      Serial.print(bme1.readTempC(), 2);
+      Serial.print("\tBME2 Temp:");
+      Serial.print(bme2.readTempC(), 2);
       delay(500);
     }
+    Serial.println("");
   }
-  waterLevel = map(constrain(analogRead(A0), 0, 1024), 0, 1024, 0, 1024);
 }
 
 void pinSetup() {
@@ -144,22 +175,25 @@ void getInput() {
       out += "\' with val = \'";
       out += newVal;
       out += "\'";
-      Serial.println(out);
+      if (!constantPrint) {
+        Serial.println(out);
+      }
       cmd = newCmd;
       val = newVal;
       newInput = true;
       //return true;
     } else {
       Serial.flush();
-      Serial.println("Invalid Input. Usage: \"<command> <value(integer)>\"");
+      if (!constantPrint) {
+        Serial.println("Invalid Input. Usage: \"<command> <value(integer)>\"");
+      }
       //return false;
     }
   }
 }
 
 void balanceWater() {
-  int pumpSpeed;
-  if (waterLevel == target) {
+  if (waterLevel == 0) {
     pumpSpeed = 100;
   } else {
     pumpSpeed = 0;
