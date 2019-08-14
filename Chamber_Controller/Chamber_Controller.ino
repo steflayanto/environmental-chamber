@@ -87,10 +87,11 @@ void loop() {
         startTime = millis();
       } else {
         constantPrint = false;
+        printDisplay();
       }
     } else {
       if (!constantPrint) {
-        Serial.println("Command not recognized");
+        Serial.println("Command not recognized. Usage: \"<command> <value(integer)>\"");
       }
     }
     newInput = false;
@@ -100,49 +101,10 @@ void loop() {
   }
   if (constantPrint) {
     if (csv) {
-      Serial.print(millis() - startTime);
-      Serial.print(",");
-      Serial.print(waterLevel);
-      Serial.print(",");
-      Serial.print(pumpSpeed);
-      Serial.print(",");
-      Serial.print(fan1Speed);
-      Serial.print(",");
-      Serial.print(fan2Speed);
-      Serial.print(",");
-      Serial.print(sensor.readHumidity(), 2);
-      Serial.print(",");
-      Serial.print(bme1.readHumidity(), 2);
-      Serial.print(",");
-      Serial.print(bme2.readHumidity(), 2);
-      Serial.print(",");
-      Serial.print(sensor.readTemperature(), 2);
-      Serial.print(",");
-      Serial.print(bme1.readTempC(), 2);
-      Serial.print(",");
-      Serial.print(bme2.readTempC(), 2);
+      printCSV();
       delay(100);
     } else {
-      Serial.print("Water:");
-      Serial.print(waterLevel);
-      Serial.print("\tPump:");
-      Serial.print(pumpSpeed);
-      Serial.print("\tFan1:");
-      Serial.print(fan1Speed);
-      Serial.print("\tFan2:");
-      Serial.print(fan2Speed);
-      Serial.print("\tSi Hum:");
-      Serial.print(sensor.readHumidity(), 2);
-      Serial.print("\tBME1 Hum:");
-      Serial.print(bme1.readHumidity(), 2);
-      Serial.print("\tBME2 Hum:");
-      Serial.print(bme2.readHumidity(), 2);
-      Serial.print("\tSi Temp:");
-      Serial.print(sensor.readTemperature(), 2);
-      Serial.print("\tBME1 Temp:");
-      Serial.print(bme1.readTempC(), 2);
-      Serial.print("\tBME2 Temp:");
-      Serial.print(bme2.readTempC(), 2);
+      printDisplay();
       delay(500);
     }
     Serial.println("");
@@ -185,7 +147,10 @@ void getInput() {
     } else {
       Serial.flush();
       if (!constantPrint) {
-        Serial.println("Invalid Input. Usage: \"<command> <value(integer)>\"");
+        Serial.println("No value provided. Default val = 0");
+        cmd = newCmd;
+        val = 0;
+        newInput = true;
       }
       //return false;
     }
@@ -219,4 +184,51 @@ void setMotor(int motor, int speed) {
     Serial.println("Motor Write Error");
   }
   analogWrite(target, map(speed, 0, 100, 0, 254));
+}
+
+void printCSV() {
+  Serial.print(millis() - startTime);
+  Serial.print(",");
+  Serial.print(waterLevel);
+  Serial.print(",");
+  Serial.print(pumpSpeed);
+  Serial.print(",");
+  Serial.print(fan1Speed);
+  Serial.print(",");
+  Serial.print(fan2Speed);
+  Serial.print(",");
+  Serial.print(sensor.readHumidity(), 2);
+  Serial.print(",");
+  Serial.print(bme1.readHumidity(), 2);
+  Serial.print(",");
+  Serial.print(bme2.readHumidity(), 2);
+  Serial.print(",");
+  Serial.print(sensor.readTemperature(), 2);
+  Serial.print(",");
+  Serial.print(bme1.readTempC(), 2);
+  Serial.print(",");
+  Serial.print(bme2.readTempC(), 2);
+}
+
+void printDisplay() {
+  Serial.print("Water:");
+  Serial.print(waterLevel);
+  Serial.print("\tPump:");
+  Serial.print(pumpSpeed);
+  Serial.print("\tFan1:");
+  Serial.print(fan1Speed);
+  Serial.print("\tFan2:");
+  Serial.print(fan2Speed);
+  Serial.print("\tSi Hum:");
+  Serial.print(sensor.readHumidity(), 2);
+  Serial.print("\tBME1 Hum:");
+  Serial.print(bme1.readHumidity(), 2);
+  Serial.print("\tBME2 Hum:");
+  Serial.print(bme2.readHumidity(), 2);
+  Serial.print("\tSi Temp:");
+  Serial.print(sensor.readTemperature(), 2);
+  Serial.print("\tBME1 Temp:");
+  Serial.print(bme1.readTempC(), 2);
+  Serial.print("\tBME2 Temp:");
+  Serial.print(bme2.readTempC(), 2);
 }
