@@ -1,0 +1,2 @@
+humidifier started at 50 second mark for test
+humidifier off at 693 second mark

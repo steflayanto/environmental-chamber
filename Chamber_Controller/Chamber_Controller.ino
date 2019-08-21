@@ -4,7 +4,8 @@
 #define BIG_FAN_DIR 4
 #define PUMP_PWM 3
 #define PUMP_DIR 2
-#define FAR 10
+#define HUM_PWM 10
+#define HUM_DIR 12
 
 //Small fan -> Motor 1
 //Big fan -> Motor 2
@@ -30,6 +31,7 @@ boolean newInput = false;
 int pumpSpeed = 0;
 int fan1Speed = 0;
 int fan2Speed = 0;
+int humSpeed = 0;
 unsigned long startTime = 0;
 
 void setup() {
@@ -47,7 +49,8 @@ void setup() {
   Serial.println("Usage: \"<command> <value>\"");
   setMotor(1, 0);
   setMotor(2, 0);
-  Serial.println("Time,Water,Pump,Fan1,Fan2,Si Humidity,BME1 Humidity,BME2 Humidity,Si Temperature,BME1 Temperature,BME2 Temperature");
+  digitalWrite(HUM_DIR, HIGH);
+  Serial.println("Time,Hum,Water,Pump,Fan1,Fan2,Si Humidity,BME2 Humidity,BME1 Humidity,Si Temperature,BME2 Temperature,BME1 Temperature,BME2 Pressure,BME1 Pressure");
 }
 
 void loop() {
@@ -76,6 +79,13 @@ void loop() {
       }
       pumpSpeed = constrain(val, -100, 100);
       setMotor(3, pumpSpeed);
+    } else if (cmd.equalsIgnoreCase("hum")) {
+      humSpeed = constrain(val, 0, 100);
+      setMotor(4, humSpeed);
+      if (!constantPrint) {
+        Serial.print("Setting humidifier to ");
+        Serial.println(humSpeed);
+      }
     } else if (cmd.equalsIgnoreCase("water")) {
       autoLevel = true;
       if (!constantPrint) {
@@ -112,6 +122,8 @@ void loop() {
 }
 
 void pinSetup() {
+  pinMode(HUM_DIR, OUTPUT);
+  pinMode(HUM_PWM, OUTPUT);
   pinMode(9, OUTPUT);
   pinMode(8, OUTPUT);
   pinMode(5, OUTPUT);
@@ -141,7 +153,7 @@ void getInput() {
         Serial.println(out);
       }
       cmd = newCmd;
-      val = newVal;
+      val = constrain(newVal, -100,100);
       newInput = true;
       //return true;
     } else {
@@ -168,7 +180,10 @@ void balanceWater() {
 
 void setMotor(int motor, int speed) {
   int target ;
-  if (motor == 3) {
+  if (motor == 4) {
+    target = HUM_PWM;
+    speed = abs(speed);
+  }else if (motor == 3) {
     target = PUMP_PWM;
     if (speed < 0) {
       digitalWrite(PUMP_DIR, LOW); //MOTOR 3
@@ -189,6 +204,8 @@ void setMotor(int motor, int speed) {
 void printCSV() {
   Serial.print(millis() - startTime);
   Serial.print(",");
+  Serial.print(humSpeed);
+  Serial.print(",");
   Serial.print(waterLevel);
   Serial.print(",");
   Serial.print(pumpSpeed);
@@ -199,18 +216,24 @@ void printCSV() {
   Serial.print(",");
   Serial.print(sensor.readHumidity(), 2);
   Serial.print(",");
-  Serial.print(bme1.readHumidity(), 2);
-  Serial.print(",");
   Serial.print(bme2.readHumidity(), 2);
+  Serial.print(",");
+  Serial.print(bme1.readHumidity(), 2);
   Serial.print(",");
   Serial.print(sensor.readTemperature(), 2);
   Serial.print(",");
+  Serial.print(bme2.readTempC(), 2);
+  Serial.print(",");
   Serial.print(bme1.readTempC(), 2);
   Serial.print(",");
-  Serial.print(bme2.readTempC(), 2);
+  Serial.print(bme2.readPressure());
+  Serial.print(",");
+  Serial.print(bme1.readPressure());
 }
 
 void printDisplay() {
+  Serial.print("Hum:");
+  Serial.print(humSpeed);
   Serial.print("Water:");
   Serial.print(waterLevel);
   Serial.print("\tPump:");
@@ -221,14 +244,18 @@ void printDisplay() {
   Serial.print(fan2Speed);
   Serial.print("\tSi Hum:");
   Serial.print(sensor.readHumidity(), 2);
-  Serial.print("\tBME1 Hum:");
-  Serial.print(bme1.readHumidity(), 2);
   Serial.print("\tBME2 Hum:");
   Serial.print(bme2.readHumidity(), 2);
+  Serial.print("\tBME1 Hum:");
+  Serial.print(bme1.readHumidity(), 2);  
   Serial.print("\tSi Temp:");
   Serial.print(sensor.readTemperature(), 2);
-  Serial.print("\tBME1 Temp:");
-  Serial.print(bme1.readTempC(), 2);
   Serial.print("\tBME2 Temp:");
   Serial.print(bme2.readTempC(), 2);
+  Serial.print("\tBME1 Temp:");
+  Serial.print(bme1.readTempC(), 2);
+  Serial.print("\tBME2 Pressure:");
+  Serial.print(bme2.readPressure());
+  Serial.print("\tBME1 Pressure:");
+  Serial.print(bme1.readPressure());
 }

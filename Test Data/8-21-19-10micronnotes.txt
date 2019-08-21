@@ -1,0 +1,9 @@
+8-21-19
+Conditions are humidifier 100%, fan1 50, fan2 40, 10 micron mesh, gas flow at 500ccm
+Observation: 
+No steam droplets on dry side of chamber
+Taking very long for dry chamber humidity to increase
+took 10 minutes to reach 70% on dry side
+BME in wet side failed, presumably due to water build up. Showing -251.5 pressure and 100% humidity
+Some meshes are getting wet, looking from dry side, it is the right column that is affected.
+

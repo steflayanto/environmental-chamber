@@ -177,7 +177,4 @@ void setupBME() {
     
     while(1);
   }
-    
-  Serial.println();
-  Serial.println();
 }
