@@ -12,8 +12,6 @@
 //Pump -> Motor 3
 #include <Adafruit_Sensor.h>
 #include "BlueDot_BME280.h"
-#include "Adafruit_Si7021.h"
-Adafruit_Si7021 sensor = Adafruit_Si7021();
 BlueDot_BME280 bme1;                                     //Object for Sensor 1
 BlueDot_BME280 bme2;                                     //Object for Sensor 2
 int bme1Detected = 0;                                    //Checks if Sensor 1 is available
@@ -38,19 +36,15 @@ void setup() {
   Serial.begin(9600);
   while (!Serial);
   Serial.setTimeout(100);
-  if (!sensor.begin()) {
-    Serial.println("Did not find Si7021 sensor!");
-    while (true);
-  }
   setupBME();
   pinSetup();
   motorSetup();
-  Serial.println("Commands: fan1, fan2, pump, water, display (\"display 1\" -> constantly display)");
+  Serial.println("Commands: fan1, fan2, pump, hum, water, display (\"display 1\" -> constantly display)");
   Serial.println("Usage: \"<command> <value>\"");
   setMotor(1, 0);
   setMotor(2, 0);
   digitalWrite(HUM_DIR, HIGH);
-  Serial.println("Time,Hum,Water,Pump,Fan1,Fan2,Si Humidity,BME2 Humidity,BME1 Humidity,Si Temperature,BME2 Temperature,BME1 Temperature,BME2 Pressure,BME1 Pressure");
+  Serial.println("Time,Hum,Water,Pump,SmallFan,BigFan,Wet Humidity,Dry Humidity,Wet Temperature,Dry Temperature,Wet Pressure,Dry Pressure");
 }
 
 void loop() {
@@ -214,13 +208,9 @@ void printCSV() {
   Serial.print(",");
   Serial.print(fan2Speed);
   Serial.print(",");
-  Serial.print(sensor.readHumidity(), 2);
-  Serial.print(",");
   Serial.print(bme2.readHumidity(), 2);
   Serial.print(",");
   Serial.print(bme1.readHumidity(), 2);
-  Serial.print(",");
-  Serial.print(sensor.readTemperature(), 2);
   Serial.print(",");
   Serial.print(bme2.readTempC(), 2);
   Serial.print(",");
@@ -238,24 +228,20 @@ void printDisplay() {
   Serial.print(waterLevel);
   Serial.print("\tPump:");
   Serial.print(pumpSpeed);
-  Serial.print("\tFan1:");
+  Serial.print("\tSmallFan:");
   Serial.print(fan1Speed);
-  Serial.print("\tFan2:");
+  Serial.print("\tBigFan:");
   Serial.print(fan2Speed);
-  Serial.print("\tSi Hum:");
-  Serial.print(sensor.readHumidity(), 2);
-  Serial.print("\tBME2 Hum:");
+  Serial.print("\tWet Hum:");
   Serial.print(bme2.readHumidity(), 2);
-  Serial.print("\tBME1 Hum:");
+  Serial.print("\tDry Hum:");
   Serial.print(bme1.readHumidity(), 2);  
-  Serial.print("\tSi Temp:");
-  Serial.print(sensor.readTemperature(), 2);
-  Serial.print("\tBME2 Temp:");
+  Serial.print("\tWet Temp:");
   Serial.print(bme2.readTempC(), 2);
-  Serial.print("\tBME1 Temp:");
+  Serial.print("\tDry Temp:");
   Serial.print(bme1.readTempC(), 2);
-  Serial.print("\tBME2 Pressure:");
+  Serial.print("\tWet Pressure:");
   Serial.print(bme2.readPressure());
-  Serial.print("\tBME1 Pressure:");
+  Serial.print("\tDry Pressure:");
   Serial.print(bme1.readPressure());
 }
