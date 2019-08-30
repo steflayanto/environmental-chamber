@@ -21,11 +21,16 @@ int bme2Detected = 0;                                    //Checks if Sensor 2 is
 boolean csv = true;
 boolean constantPrint = false;
 boolean autoLevel = true;
+boolean autoHum = false;
 
 int waterLevel = 0; // reading of analog0
+float wetHum = 0.0;
+float dryHum = 0.0;
+
 String cmd = ""; // Input Command
 int val = 0; // Input Value
 boolean newInput = false;
+float humSetpoint = 0.0;
 int pumpSpeed = 0;
 int fan1Speed = 0;
 int fan2Speed = 0;
@@ -50,21 +55,22 @@ void setup() {
 void loop() {
   getInput();
   waterLevel = map(constrain(analogRead(A0), 0, 1024), 0, 1024, 0, 1024);
+  wetHum = bme2.readHumidity();
+  dryHum = bme1.readHumidity();
   if (newInput) {
     if (cmd.equalsIgnoreCase("fan1")) {
+      autoHum = false;
       if (!constantPrint) {
         Serial.print("Setting fan1 to ");
         Serial.println(val);
       }
       fan1Speed = constrain(val, 0, 100);
-      setMotor(1, fan1Speed);
     } else if (cmd.equalsIgnoreCase("fan2")) {
       if (!constantPrint) {
         Serial.print("Setting fan2 to ");
         Serial.println(val);
       }
       fan2Speed = constrain(val, 0, 100);
-      setMotor(2, fan2Speed);
     } else if (cmd.equalsIgnoreCase("pump")) {
       autoLevel = false;
       if (!constantPrint) {
@@ -72,10 +78,9 @@ void loop() {
         Serial.println(val);
       }
       pumpSpeed = constrain(val, -100, 100);
-      setMotor(3, pumpSpeed);
     } else if (cmd.equalsIgnoreCase("hum")) {
       humSpeed = constrain(val, 0, 100);
-      setMotor(4, humSpeed);
+      autoHum = false;
       if (!constantPrint) {
         Serial.print("Setting humidifier to ");
         Serial.println(humSpeed);
@@ -84,6 +89,14 @@ void loop() {
       autoLevel = true;
       if (!constantPrint) {
         Serial.print("Autolevel on");
+      }
+    } else if (cmd.equalsIgnoreCase("wet")) {
+      autoHum = true;
+      humSetpoint = constrain(val, 0, 100);
+      if (!constantPrint) {
+        Serial.print("Auto humidity set to: ");
+        Serial.print(humSetpoint);
+        Serial.print("%");
       }
     } else if (cmd.equalsIgnoreCase("display")) {
       if (val == 1) {
@@ -103,6 +116,9 @@ void loop() {
   if (autoLevel) {
     balanceWater();
   }
+  if (autoHum) {
+    setHumidity();
+  }
   if (constantPrint) {
     if (csv) {
       printCSV();
@@ -113,6 +129,14 @@ void loop() {
     }
     Serial.println("");
   }
+  writeMotors();
+}
+
+void writeMotors() {
+  setMotor(1, fan1Speed);
+  setMotor(2, fan2Speed);
+  setMotor(3, pumpSpeed);
+  setMotor(4, humSpeed);
 }
 
 void pinSetup() {
@@ -158,9 +182,25 @@ void getInput() {
         val = 0;
         newInput = true;
       }
-      //return false;
     }
   }
+}
+
+void setHumidity() {
+  if (humSetpoint - wetHum < 0.1) { // at setpoint
+    humSpeed = 0;
+    fan1Speed = 0;
+  } else if (humSetpoint - wetHum < 1.0) { //approaching setpoint
+    humSpeed = 0;
+    fan1Speed = 50;
+  } else if (humSetpoint - wetHum < 3.5) { //approaching setpoint
+    humSpeed = 0;
+    fan1Speed = 100;
+  } else { //far away
+    humSpeed = 75;
+    fan1Speed = 100;
+  }
+  
 }
 
 void balanceWater() {
@@ -169,7 +209,6 @@ void balanceWater() {
   } else {
     pumpSpeed = 0;
   }
-  setMotor(3, pumpSpeed);
 }
 
 void setMotor(int motor, int speed) {
@@ -196,6 +235,8 @@ void setMotor(int motor, int speed) {
 }
 
 void printCSV() {
+//  Serial.print(wetHum);
+//  return;
   Serial.print(millis() - startTime);
   Serial.print(",");
   Serial.print(humSpeed);
@@ -208,9 +249,9 @@ void printCSV() {
   Serial.print(",");
   Serial.print(fan2Speed);
   Serial.print(",");
-  Serial.print(bme2.readHumidity(), 2);
+  Serial.print(wetHum, 2);
   Serial.print(",");
-  Serial.print(bme1.readHumidity(), 2);
+  Serial.print(dryHum, 2);
   Serial.print(",");
   Serial.print(bme2.readTempC(), 2);
   Serial.print(",");
@@ -233,9 +274,9 @@ void printDisplay() {
   Serial.print("\tBigFan:");
   Serial.print(fan2Speed);
   Serial.print("\tWet Hum:");
-  Serial.print(bme2.readHumidity(), 2);
+  Serial.print(wetHum, 2);
   Serial.print("\tDry Hum:");
-  Serial.print(bme1.readHumidity(), 2);  
+  Serial.print(dryHum, 2);  
   Serial.print("\tWet Temp:");
   Serial.print(bme2.readTempC(), 2);
   Serial.print("\tDry Temp:");
