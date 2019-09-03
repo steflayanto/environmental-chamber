@@ -44,12 +44,11 @@ void setup() {
   setupBME();
   pinSetup();
   motorSetup();
-  Serial.println("Commands: fan1, fan2, pump, hum, water, display (\"display 1\" -> constantly display)");
+  Serial.println("Commands: fan1 (small fan), fan2 (big fan), pump, hum (auto-control humidity), water (auto-control water), display (\"display 1\" -> constantly display)");
   Serial.println("Usage: \"<command> <value>\"");
   setMotor(1, 0);
   setMotor(2, 0);
   digitalWrite(HUM_DIR, HIGH);
-  Serial.println("Time,Hum,Water,Pump,SmallFan,BigFan,Wet Humidity,Dry Humidity,Wet Temperature,Dry Temperature,Wet Pressure,Dry Pressure");
 }
 
 void loop() {
@@ -102,6 +101,7 @@ void loop() {
       if (val == 1) {
         constantPrint = true;
         startTime = millis();
+        Serial.print("Time,Hum,Water,Pump,SmallFan,BigFan,Wet Humidity,Dry Humidity,Wet Temperature,Dry Temperature,Wet Pressure,Dry Pressure");
       } else {
         constantPrint = false;
         printDisplay();
