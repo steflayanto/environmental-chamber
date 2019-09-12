@@ -97,11 +97,34 @@ void loop() {
         Serial.print(humSetpoint);
         Serial.print("%");
       }
+    } else if (cmd.equalsIgnoreCase("test")) {
+      Serial.println("Testing Fan1...");
+      setMotor(1, 100);
+      delay(1000);
+      setMotor(1, 0);
+      Serial.println("Testing Fan2...");
+      setMotor(2, 100);
+      delay(1000);
+      setMotor(2, 0);
+      Serial.println("Testing Pump..");
+      setMotor(3, 100);
+      delay(500);
+      setMotor(3, -100);
+      delay(500);
+      setMotor(3, 0);
+      Serial.println("Testing Humidifier...");
+      for (int i = 0; i < 3; i++) {
+        setMotor(4, 100);
+        delay(50);
+        setMotor(4, 0);
+        delay(250);
+      }
+      Serial.println("Finished Diagnostics.");
     } else if (cmd.equalsIgnoreCase("display")) {
       if (val == 1) {
         constantPrint = true;
         startTime = millis();
-        Serial.print("Time,Hum,Water,Pump,SmallFan,BigFan,Wet Humidity,Dry Humidity,Wet Temperature,Dry Temperature,Wet Pressure,Dry Pressure");
+        Serial.println("Time,Hum,Water,Pump,SmallFan,BigFan,Wet Humidity,Dry Humidity,Wet Temperature,Dry Temperature,Wet Pressure,Dry Pressure");
       } else {
         constantPrint = false;
         printDisplay();
@@ -171,7 +194,7 @@ void getInput() {
         Serial.println(out);
       }
       cmd = newCmd;
-      val = constrain(newVal, -100,100);
+      val = constrain(newVal, -100, 100);
       newInput = true;
       //return true;
     } else {
@@ -200,7 +223,7 @@ void setHumidity() {
     humSpeed = 75;
     fan1Speed = 100;
   }
-  
+
 }
 
 void balanceWater() {
@@ -216,7 +239,7 @@ void setMotor(int motor, int speed) {
   if (motor == 4) {
     target = HUM_PWM;
     speed = abs(speed);
-  }else if (motor == 3) {
+  } else if (motor == 3) {
     target = PUMP_PWM;
     if (speed < 0) {
       digitalWrite(PUMP_DIR, LOW); //MOTOR 3
@@ -235,8 +258,8 @@ void setMotor(int motor, int speed) {
 }
 
 void printCSV() {
-//  Serial.print(wetHum);
-//  return;
+  //  Serial.print(wetHum);
+  //  return;
   Serial.print(millis() - startTime);
   Serial.print(",");
   Serial.print(humSpeed);
@@ -276,7 +299,7 @@ void printDisplay() {
   Serial.print("\tWet Hum:");
   Serial.print(wetHum, 2);
   Serial.print("\tDry Hum:");
-  Serial.print(dryHum, 2);  
+  Serial.print(dryHum, 2);
   Serial.print("\tWet Temp:");
   Serial.print(bme2.readTempC(), 2);
   Serial.print("\tDry Temp:");
