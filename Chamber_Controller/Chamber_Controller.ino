@@ -99,32 +99,26 @@ void loop() {
       }
     } else if (cmd.equalsIgnoreCase("test")) {
       Serial.println("Testing Fan1...");
-      delay(1000);
       setMotor(1, 100);
       delay(1000);
       setMotor(1, 0);
       Serial.println("Testing Fan2...");
-      delay(1000);
       setMotor(2, 100);
       delay(1000);
       setMotor(2, 0);
-      delay(1000);
       Serial.println("Testing Pump..");
-      delay(1000);
       setMotor(3, 100);
-      delay(1000);
+      delay(500);
       setMotor(3, -100);
-      delay(1000);
+      delay(500);
       setMotor(3, 0);
-      delay(1000);
       Serial.println("Testing Humidifier...");
-      for (int i = 0; i < 4; i++) {
+      for (int i = 0; i < 3; i++) {
         setMotor(4, 100);
-        delay(100);
+        delay(50);
         setMotor(4, 0);
-        delay(500);
+        delay(250);
       }
-      delay(1000);
       Serial.println("Finished Diagnostics.");
     } else if (cmd.equalsIgnoreCase("display")) {
       if (val == 1) {
@@ -151,7 +145,7 @@ void loop() {
   if (constantPrint) {
     if (csv) {
       printCSV();
-      delay(100);
+      delay(1000);
     } else {
       printDisplay();
       delay(500);
