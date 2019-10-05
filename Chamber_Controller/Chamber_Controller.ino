@@ -6,6 +6,8 @@
 #define PUMP_DIR 2
 #define HUM_PWM 10
 #define HUM_DIR 12
+#define MAX_HUM 97   //Humidity not allowed to pass this value
+#define INTERVAL 500 //Time in milliseconds between print statements (1000ms -> 1 Hz)
 
 //Small fan -> Motor 1
 //Big fan -> Motor 2
@@ -21,7 +23,8 @@ int bme2Detected = 0;                                    //Checks if Sensor 2 is
 boolean csv = true;
 boolean constantPrint = false;
 boolean autoLevel = true;
-boolean autoHum = false;
+boolean autoWetHum = false;
+boolean autoDryHum = false;
 
 int waterLevel = 0; // reading of analog0
 float wetHum = 0.0;
@@ -30,12 +33,14 @@ float dryHum = 0.0;
 String cmd = ""; // Input Command
 int val = 0; // Input Value
 boolean newInput = false;
-float humSetpoint = 0.0;
+float wetHumSetpoint = 0.0;
+float dryHumSetpoint = 0.0;
 int pumpSpeed = 0;
 int fan1Speed = 0;
 int fan2Speed = 0;
 int humSpeed = 0;
 unsigned long startTime = 0;
+unsigned long printTimer = 0;
 
 void setup() {
   Serial.begin(9600);
@@ -58,7 +63,8 @@ void loop() {
   dryHum = bme1.readHumidity();
   if (newInput) {
     if (cmd.equalsIgnoreCase("fan1")) {
-      autoHum = false;
+      autoWetHum = false;
+      autoDryHum = false;
       if (!constantPrint) {
         Serial.print("Setting fan1 to ");
         Serial.println(val);
@@ -79,7 +85,8 @@ void loop() {
       pumpSpeed = constrain(val, -100, 100);
     } else if (cmd.equalsIgnoreCase("hum")) {
       humSpeed = constrain(val, 0, 100);
-      autoHum = false;
+      autoWetHum = false;
+      autoDryHum = false;
       if (!constantPrint) {
         Serial.print("Setting humidifier to ");
         Serial.println(humSpeed);
@@ -90,11 +97,21 @@ void loop() {
         Serial.print("Autolevel on");
       }
     } else if (cmd.equalsIgnoreCase("wet")) {
-      autoHum = true;
-      humSetpoint = constrain(val, 0, 100);
+      autoWetHum = true;
+      autoDryHum = false;
+      wetHumSetpoint = constrain(val, 0, MAX_HUM);
       if (!constantPrint) {
-        Serial.print("Auto humidity set to: ");
-        Serial.print(humSetpoint);
+        Serial.print("Auto wet humidity set to: ");
+        Serial.print(wetHumSetpoint);
+        Serial.print("%");
+      }
+    } else if (cmd.equalsIgnoreCase("dry")) {
+      autoWetHum = true;
+      autoDryHum = true;
+      dryHumSetpoint = constrain(val, 0, MAX_HUM);
+      if (!constantPrint) {
+        Serial.print("Auto dry humidity set to: ");
+        Serial.print(dryHumSetpoint);
         Serial.print("%");
       }
     } else if (cmd.equalsIgnoreCase("test")) {
@@ -139,16 +156,19 @@ void loop() {
   if (autoLevel) {
     balanceWater();
   }
-  if (autoHum) {
-    setHumidity();
+  if (autoDryHum) {
+    setDryHumidity();
   }
-  if (constantPrint) {
+  if (autoWetHum) {
+    setWetHumidity();
+  }
+  
+  if (constantPrint && millis() - printTimer > INTERVAL) {
+    printTimer = millis();
     if (csv) {
       printCSV();
-      delay(1000);
     } else {
       printDisplay();
-      delay(500);
     }
     Serial.println("");
   }
@@ -209,21 +229,35 @@ void getInput() {
   }
 }
 
-void setHumidity() {
-  if (humSetpoint - wetHum < 0.1) { // at setpoint
+void setWetHumidity() {
+  if (wetHumSetpoint - wetHum < 0.1) { // at setpoint
     humSpeed = 0;
     fan1Speed = 0;
-  } else if (humSetpoint - wetHum < 1.0) { //approaching setpoint
+  } else if (wetHumSetpoint - wetHum < 1.0) { //approaching setpoint
     humSpeed = 0;
     fan1Speed = 50;
-  } else if (humSetpoint - wetHum < 3.5) { //approaching setpoint
+  } else if (wetHumSetpoint - wetHum < 5) { //approaching setpoint
     humSpeed = 0;
     fan1Speed = 100;
   } else { //far away
     humSpeed = 75;
     fan1Speed = 100;
   }
+}
 
+void setDryHumidity() {
+  if (dryHumSetpoint - dryHum < 0.1) { // at setpoint or beyond
+    wetHumSetpoint = dryHumSetpoint + 5;
+    fan2Speed = 15;
+  } else if (dryHumSetpoint - dryHum < 3.0) { //approaching setpoint
+    wetHumSetpoint = dryHumSetpoint + 7;
+    fan2Speed = 50;
+  } else { //far away
+    wetHumSetpoint = dryHumSetpoint + 12;
+    fan2Speed = 100;
+  }
+//  Serial.println("Trying to set dry hum");
+  wetHumSetpoint = constrain(wetHumSetpoint,0,MAX_HUM);
 }
 
 void balanceWater() {
