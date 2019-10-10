@@ -1,3 +1,13 @@
+//SETTINGS
+#define MAX_HUM 97   //Humidity not allowed to pass this value
+#define INTERVAL 500 //Time in milliseconds between print statements (1000ms -> 1 Hz)
+boolean csv = true;
+boolean constantPrint = false;
+boolean autoLevel = true;
+boolean autoWetHum = false;
+boolean autoDryHum = false;
+
+
 #define SMALL_FAN_PWM 9
 #define SMALL_FAN_DIR 8
 #define BIG_FAN_PWM 5
@@ -6,8 +16,6 @@
 #define PUMP_DIR 2
 #define HUM_PWM 10
 #define HUM_DIR 12
-#define MAX_HUM 97   //Humidity not allowed to pass this value
-#define INTERVAL 500 //Time in milliseconds between print statements (1000ms -> 1 Hz)
 
 //Small fan -> Motor 1
 //Big fan -> Motor 2
@@ -19,12 +27,7 @@ BlueDot_BME280 bme2;                                     //Object for Sensor 2
 int bme1Detected = 0;                                    //Checks if Sensor 1 is available
 int bme2Detected = 0;                                    //Checks if Sensor 2 is available
 
-//SETTINGS
-boolean csv = true;
-boolean constantPrint = false;
-boolean autoLevel = true;
-boolean autoWetHum = false;
-boolean autoDryHum = false;
+
 
 int waterLevel = 0; // reading of analog0
 float wetHum = 0.0;
@@ -229,8 +232,9 @@ void getInput() {
   }
 }
 
+//----------------TUNE HERE -------------------------------------------------
 void setWetHumidity() {
-  if (wetHumSetpoint - wetHum < 0.1) { // at setpoint
+  if (wetHumSetpoint - wetHum < 0.1) { // at setpoint or beyond
     humSpeed = 0;
     fan1Speed = 0;
   } else if (wetHumSetpoint - wetHum < 1.0) { //approaching setpoint
@@ -259,6 +263,8 @@ void setDryHumidity() {
 //  Serial.println("Trying to set dry hum");
   wetHumSetpoint = constrain(wetHumSetpoint,0,MAX_HUM);
 }
+
+//----------------TUNE HERE -------------------------------------------------
 
 void balanceWater() {
   if (waterLevel == 0) {
